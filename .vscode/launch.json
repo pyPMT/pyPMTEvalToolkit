@@ -1,0 +1,21 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Generator",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/exp-runner/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "generate", 
+                "--exp-details-dir", "${workspaceFolder}/exp-configurations/exp-demo",
+                "--sandbox-dir",     "${workspaceFolder}/sandbox-dir",
+                "--planning-tasks-dir", "${workspaceFolder}/pkgs/classical-domains",
+            ]
+        }
+    ]
+}
