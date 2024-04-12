@@ -14,7 +14,8 @@
                 "generate", 
                 "--exp-details-dir", "${workspaceFolder}/exp-configurations/exp-demo",
                 "--sandbox-dir",     "${workspaceFolder}/sandbox-dir",
-                "--planning-tasks-dir", "${workspaceFolder}/pkgs/classical-domains",
+                //"--planning-tasks-dir", "${workspaceFolder}/pkgs/classical-domains",
+                "--planning-tasks-dir", "${workspaceFolder}/pkgs/numeric_benchmarks"
             ]
         },
         {
