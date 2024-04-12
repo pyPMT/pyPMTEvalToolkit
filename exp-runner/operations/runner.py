@@ -29,7 +29,7 @@ def solve(args):
         task = PDDLReader().parse_problem(args.domain, args.problem)
         end_time = time.time()
         pddl_parse_time = end_time - start_time
-
+        
         start_time = time.time()
         with OneshotPlanner(name=up_planner_name,  params=up_planner_params) as planner:
             result = planner.solve(task)
@@ -52,13 +52,17 @@ def solve(args):
         dumpresult['task-result'] = defaultdict(dict)
         dumpresult['task-result']['timings'] = defaultdict(dict)
         dumpresult['task-result']['timings']['pddl-parse-time'] = pddl_parse_time
-        dumpresult['task-result']['timings']['planning-time'] = planning_time
+        dumpresult['task-result']['timings']['planning-time']   = planning_time
 
         dumpresult['task-result']['summary'] = defaultdict(dict)
         dumpresult['task-result']['summary']['status'] = result.status.name
         dumpresult['task-result']['summary']['log_messages'] = [] if result.log_messages is None else result.log_messages
 
         dumpresult['task-result']['plan'] = [action for action in str(seedplan).split()[1:]]
+
+        dumpresult['debug-info'] = defaultdict(dict)
+        dumpresult['debug-info']['domain-file']  = args.domain
+        dumpresult['debug-info']['problem-file'] = args.problem
         
         # Dump this to the output directory.
         dumpfile = os.path.join(args.results_dump_dir, f"{planner_tag}-{args.domainname}-{args.instanceno}-{args.ipc_year}.json")
