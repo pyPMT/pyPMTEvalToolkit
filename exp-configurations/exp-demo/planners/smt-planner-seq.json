@@ -1,6 +1,11 @@
 {
-    "name": "SequentialSMT",
-    "encoder": "EncoderSequentialSMT",
-    "upper-bound": 1000,
-    "search": "SMTSearch"
+    "planner-tag": "SequentialSMT-tag",
+    "up-planner-name": "SMTPlanner",
+    "planner-params": {
+        "encoder": "EncoderSequentialSMT",
+        "upper-bound": 1000,
+        "search-strategy": "SMTSearch",
+        "configuration": "smt",
+        "run-validation": false
+    }
 }

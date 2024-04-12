@@ -1,6 +1,0 @@
-{
-    "name": "ParallelSMT",
-    "encoder": "EncoderParallelSMT",
-    "upper-bound": 1000,
-    "search": "SMTSearch"
-}

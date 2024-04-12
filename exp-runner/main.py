@@ -54,8 +54,8 @@ def _create_arg_parser():
         subparser[cmd].add_argument( "--instanceno",  type=int, help="Instance number ")
         subparser[cmd].add_argument( "--ipc-year",    type=str, help="Path to the directory containing all results.")
 
-        subparser[cmd].add_argument( "--run-plan-validator", action="store_true", help="Run the plan validator.")
         subparser[cmd].add_argument( "--run-dir")
+        subparser[cmd].add_argument( "--results-dump-dir", type=str, help="Path to a directory to dump the results.")
     
     for cmd in ["generate"]:
         subparser[cmd].add_argument( "--venv-dir" , type=str, help="Path to the virtual environment directory.")

@@ -74,7 +74,7 @@ def _get_planning_domains(directory_path):
             planning_domains.append(os.path.join(root, dir_name))
     return planning_domains
 
-def construct_run_cmd(expdetails, expdetailsfile, plannercfg, planningtask, rundir):
+def construct_run_cmd(expdetails, expdetailsfile, plannercfg, planningtask, rundir, dump_results_dir):
     cmd = "solve "
     cmd += f"--domainname {planningtask['domainname']} "
     cmd += f"--instanceno {planningtask['instanceno']} "
@@ -84,10 +84,7 @@ def construct_run_cmd(expdetails, expdetailsfile, plannercfg, planningtask, rund
     cmd += f"--run-dir {rundir} "
     cmd += f"--domain {planningtask['domainfile']} "
     cmd += f"--problem {planningtask['problemfile']} "
-
-    run_validation = getkeyvalue(expdetails, 'run-plan-validation')
-    if run_validation: cmd += "--run-plan-validator "
-
+    cmd += f"--results-dump-dir {dump_results_dir} "
     return cmd
 
 def getkeyvalue(data, target_key):

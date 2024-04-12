@@ -16,6 +16,23 @@
                 "--sandbox-dir",     "${workspaceFolder}/sandbox-dir",
                 "--planning-tasks-dir", "${workspaceFolder}/pkgs/classical-domains",
             ]
+        },
+        {
+            "name": "Solve-dev",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/exp-runner/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "solve", "--domainname", "rovers", "--instanceno", "1", "--ipc-year", "2006",
+                "--planner-cfg-file", "${workspaceFolder}/exp-configurations/exp-demo/planners/smt-planner-seq.json", 
+                "--exp-details-dir", "${workspaceFolder}/exp-configurations/exp-demo/exp-details.json", 
+                "--run-dir", "${workspaceFolder}/sandbox-dir/planners_run", 
+                "--domain",  "${workspaceFolder}/pkgs/classical-domains/classical/rovers/domain.pddl", 
+                "--problem", "${workspaceFolder}/pkgs/classical-domains/classical/rovers/p01.pddl", 
+                "--results-dump-dir", "${workspaceFolder}/sandbox-dir/dump_results"
+            ],
+            "justMyCode": false
         }
     ]
 }
