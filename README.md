@@ -37,6 +37,7 @@ Here is the content for `smt-seq-planner.json`:
         "encoder": "EncoderSequentialSMT",
         "upper-bound": 1000,
         "search-strategy": "SMTSearch",
+        "configuration": "seq",
         "run-validation": false
     }
 }
@@ -51,6 +52,7 @@ Here is the content for `smt-par-planner.json`:
         "encoder": "EncoderParallelSMT",
         "upper-bound": 1000,
         "search-strategy": "SMTSearch",
+        "configuration": "seqForall",
         "run-validation": false
     }
 }

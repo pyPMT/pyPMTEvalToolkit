@@ -8,7 +8,7 @@ from unified_planning.shortcuts import *
 from unified_planning.io import PDDLReader
 from unified_planning.plans import SequentialPlan
 
-from omtplan.shortcuts import *
+from pypmt.shortcuts import *
 
 from .utilities import getkeyvalue
 

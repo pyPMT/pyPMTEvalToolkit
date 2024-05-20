@@ -5,7 +5,7 @@
         "encoder": "EncoderSequentialSMT",
         "upper-bound": 1000,
         "search-strategy": "SMTSearch",
-        "configuration": "smt",
+        "configuration": "seq",
         "run-validation": false
     }
 }
