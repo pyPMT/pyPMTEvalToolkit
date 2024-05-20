@@ -5,9 +5,6 @@ import json
 import importlib.util
 import subprocess
 
-
-from unified_planning.io import PDDLReader
-
 def parse_experiment_details(expdetailsdir:str):
     """
     Parse the experiment details json file.

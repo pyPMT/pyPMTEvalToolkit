@@ -58,10 +58,14 @@ Here is the content for `smt-par-planner.json`:
 
 3. Step 3: Generate the experiment commands, such that each command runs a planning task with a planner. This is acheived by
 ```
-python3 exp-runner/main.py generate --exp-details-dir $(pwd)/exp-1 --sandbox-dir $(pwd)/sandbox-dir --planning-tasks-dir $(pwd)/pkgs/classical-domains",
+python3 exp-runner/main.py generate --exp-details-dir $(pwd)/exp-1 --sandbox-dir $(pwd)/sandbox-dir --planning-tasks-dir $(pwd)/pkgs/classical-domains
 ```
 After running this command, it generates `generated_cmds.sh` such that each line is a command aims to solve one of the planning tasks found in `--planning-tasks-dir`
 
 4. Step 4: Running the experiment commands, which can be done by using gnu-parallels or slurm.
 
 Note that the results are stored in `sandbox-dir/dump_results` dir in json file format.
+- A quick start use:
+```
+python3 exp-runner/main.py generate --exp-details-dir $(pwd)/exp-configurations/exp-demo --sandbox-dir $(pwd)/sandbox-dir --planning-tasks-dir $(pwd)/pkgs/classical-domains
+```
