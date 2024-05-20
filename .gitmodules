@@ -1,9 +1,3 @@
 [submodule "pkgs/classical-domains"]
 	path = pkgs/classical-domains
 	url = https://github.com/AI-Planning/classical-domains.git
-[submodule "pkgs/numeric_benchmarks"]
-	path = pkgs/numeric_benchmarks
-	url = https://github.com/OMTPlan/numeric_benchmarks
-[submodule "pkgs/OMTPlan"]
-	path = pkgs/OMTPlan
-	url = https://github.com/OMTPlan/OMTPlan.git
