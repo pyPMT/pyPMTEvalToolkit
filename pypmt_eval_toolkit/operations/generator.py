@@ -14,8 +14,6 @@ def generate(args):
     expdetails = parse_experiment_details(args.exp_details_dir)
     # Parse the planning tasks dir.
     planning_tasks = parse_planning_tasks(args.planning_tasks_dir)
-    # Create a venv for to install the required packages.
-    venv_dir = createVEnv(args.sandbox_dir, os.path.join(os.path.dirname(__file__), 'requirements.txt'))
     # Now for every planner configuration, generate the cmd for each planning task.
     expdetails_jsonfile = os.path.join(args.exp_details_dir, "exp-details.json")
     generated_cmds = set()
@@ -23,8 +21,11 @@ def generate(args):
         for plannername, plannercfg in expdetails['planners'].items():
             cmd = construct_run_cmd(expdetails, expdetails_jsonfile, plannercfg, planning_task, planners_run_dir, dump_results_dir)
             # get the script running script.
-            main_entry = os.path.join(os.path.dirname(__file__), '..', 'main.py')
-            generated_cmds.add(f'source {venv_dir}/bin/activate && {main_entry} {cmd} && deactivate')
+            main_entry = 'pypmtevalcli'
+            if args.venv_dir:
+                generated_cmds.add(f'source {args.venv_dir}/bin/activate && {main_entry} {cmd} && deactivate')
+            else:
+                generated_cmds.add(f'python {main_entry} {cmd}')
     # dump those commands to a file.
     with open(os.path.join(generated_cmds_dir, 'generated_cmds.sh'), 'w') as f:
         for cmd in generated_cmds:

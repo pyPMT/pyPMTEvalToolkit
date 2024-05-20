@@ -2,6 +2,14 @@
 This repo makes it easy for us to compare planners.
 
 # How to use
+0. Step 0: Install the package and prepare the planning tasks.
+```
+mkdir sandbox-dir venv
+git clone https://github.com/AI-Planning/classical-domains
+source venv/bin/activate
+pip install .
+```
+
 1. Step 1: Describe your experiment parameter.
 ```
 mkdir -p exp-1/planners
@@ -60,14 +68,10 @@ Here is the content for `smt-par-planner.json`:
 
 3. Step 3: Generate the experiment commands, such that each command runs a planning task with a planner. This is acheived by
 ```
-python3 exp-runner/main.py generate --exp-details-dir $(pwd)/exp-1 --sandbox-dir $(pwd)/sandbox-dir --planning-tasks-dir $(pwd)/pkgs/classical-domains
+pypmtevalcli generate --venv-dir $(pwd)/venv --exp-details-dir $(pwd)/exp-1 --sandbox-dir $(pwd)/sandbox-dir --planning-tasks-dir $(pwd)/classical-domains
 ```
 After running this command, it generates `generated_cmds.sh` such that each line is a command aims to solve one of the planning tasks found in `--planning-tasks-dir`
 
 4. Step 4: Running the experiment commands, which can be done by using gnu-parallels or slurm.
 
 Note that the results are stored in `sandbox-dir/dump_results` dir in json file format.
-- A quick start use:
-```
-python3 exp-runner/main.py generate --exp-details-dir $(pwd)/exp-configurations/exp-demo --sandbox-dir $(pwd)/sandbox-dir --planning-tasks-dir $(pwd)/pkgs/classical-domains
-```

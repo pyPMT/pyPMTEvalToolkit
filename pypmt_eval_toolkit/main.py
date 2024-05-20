@@ -9,15 +9,17 @@ import sys
 from copy import deepcopy
 import cProfile
 
-from operations import (
+from pypmt_eval_toolkit.operations import (
     runner,
     generator
 )
 
-def main(ARG_PARSER):
+def main():
     """
     Entry point function.
     """
+    profilecode = True
+    ARG_PARSER = _create_arg_parser()
     args = ARG_PARSER.parse_args()
     exitcode = args.func(args)
     return 0
@@ -64,7 +66,6 @@ def _create_arg_parser():
         subparser[cmd].add_argument( "--sandbox-dir", type=str, help="Path to a sandbox directory to contain all processed files and generated plans.")
         subparser[cmd].add_argument( "--planning-tasks-dir", type=str, help="Path to the directory containing all planning tasks.")
 
-
     return parser
 
 _COMMANDS = {
@@ -77,8 +78,3 @@ _COMMANDS = {
         "desc": "Generate the planning task cmds."
     },
 }
-
-if __name__ == "__main__":
-    profilecode = True
-    ARG_PARSER = _create_arg_parser()    
-    sys.exit(main(ARG_PARSER))

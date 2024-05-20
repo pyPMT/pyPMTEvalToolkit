@@ -1,6 +1,0 @@
-[submodule "pkgs/classical-domains"]
-	path = pkgs/classical-domains
-	url = https://github.com/AI-Planning/classical-domains.git
-[submodule "pkgs/numeric-domains"]
-	path = pkgs/numeric-domains
-	url = https://github.com/pyPMT/numeric-domains.git

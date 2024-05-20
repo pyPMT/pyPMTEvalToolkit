@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "pypmt-eval-toolkit"
+version = "0.1.0"
+description = "A package to evaluate plannerswith UP interface."
+authors = ["MFaisalZaki <mustafa.faisal.eng@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+unified-planning = "^1.1.0"
+pypmt = {git = "https://github.com/pyPMT/pyPMT.git"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+pypmtevalcli = 'pypmt_eval_toolkit.main:main'
