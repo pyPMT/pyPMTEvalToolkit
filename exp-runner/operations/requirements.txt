@@ -3,3 +3,4 @@ z3-solver
 up-symk
 networkx
 pytest
+git+https://github.com/pyPMT/pyPMT.git
