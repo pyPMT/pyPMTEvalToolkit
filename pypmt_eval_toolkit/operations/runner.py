@@ -12,6 +12,7 @@ def solve(args):
     import unified_planning.engines.results as up_results
     import unified_planning.io as up_io
     import unified_planning.plans as up_plans
+    import pypmt.shortcuts # Register the pypmt engine.
 
     with tempfile.TemporaryDirectory(dir=args.run_dir) as tmpdirname:
         planner_cfg       = json.load(open(args.planner_cfg_file))

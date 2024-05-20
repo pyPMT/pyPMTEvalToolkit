@@ -16,4 +16,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-pypmtcli = 'pypmt_eval_toolkit.main:main'
+pypmtevalcli = 'pypmt_eval_toolkit.main:main'

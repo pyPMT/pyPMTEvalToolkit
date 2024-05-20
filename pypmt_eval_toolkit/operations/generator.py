@@ -21,7 +21,7 @@ def generate(args):
         for plannername, plannercfg in expdetails['planners'].items():
             cmd = construct_run_cmd(expdetails, expdetails_jsonfile, plannercfg, planning_task, planners_run_dir, dump_results_dir)
             # get the script running script.
-            main_entry = os.path.join(os.path.dirname(__file__), '..', 'main.py')
+            main_entry = 'pypmtevalcli'
             if args.venv_dir:
                 generated_cmds.add(f'source {args.venv_dir}/bin/activate && {main_entry} {cmd} && deactivate')
             else:
