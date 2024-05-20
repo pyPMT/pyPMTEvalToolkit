@@ -5,7 +5,7 @@ import time
 from collections import defaultdict
 
 from unified_planning.shortcuts import *
-from unified_planning.io import PDDLReader
+from unified_planning.io import PDDLReader, PDDLWriter
 from unified_planning.plans import SequentialPlan
 
 from pypmt.shortcuts import *
@@ -58,7 +58,7 @@ def solve(args):
         dumpresult['task-result']['summary']['status'] = result.status.name
         dumpresult['task-result']['summary']['log_messages'] = [] if result.log_messages is None else result.log_messages
 
-        dumpresult['task-result']['plan'] = [action for action in str(seedplan).split()[1:]]
+        dumpresult['task-result']['plan'] = PDDLWriter(task).get_plan(seedplan).split('\n')[:-1]
 
         dumpresult['debug-info'] = defaultdict(dict)
         dumpresult['debug-info']['domain-file']  = args.domain
