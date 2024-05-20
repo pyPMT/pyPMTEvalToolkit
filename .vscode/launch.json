@@ -8,12 +8,12 @@
             "name": "Generator",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/exp-runner/main.py",
+            "program": "${workspaceFolder}/pypmt_eval_toolkit/main.py",
             "console": "integratedTerminal",
             "args": [
                 "generate", 
-                "--exp-details-dir", "${workspaceFolder}/exp-configurations/exp-demo",
-                "--sandbox-dir",     "${workspaceFolder}/sandbox-dir",
+                "--exp-details-dir", "${workspaceFolder}/../exp-configurations/exp-demo",
+                "--sandbox-dir",     "${workspaceFolder}/../sandbox-dir",
                 //"--planning-tasks-dir", "${workspaceFolder}/pkgs/classical-domains",
                 "--planning-tasks-dir", "${workspaceFolder}/pkgs/numeric_benchmarks"
             ]
