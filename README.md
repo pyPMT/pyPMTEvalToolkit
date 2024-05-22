@@ -4,7 +4,8 @@ This repo makes it easy for us to compare planners.
 # How to use
 0. Step 0: Install the package and prepare the planning tasks.
 ```
-mkdir sandbox-dir venv
+mkdir sandbox-dir
+python -m venv venv
 git clone https://github.com/AI-Planning/classical-domains
 source venv/bin/activate
 pip install .
