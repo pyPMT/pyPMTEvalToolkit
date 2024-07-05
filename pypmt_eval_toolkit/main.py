@@ -11,7 +11,8 @@ import cProfile
 
 from pypmt_eval_toolkit.operations import (
     runner,
-    generator
+    generator,
+    analyzer
 )
 
 def main():
@@ -66,6 +67,10 @@ def _create_arg_parser():
         subparser[cmd].add_argument( "--sandbox-dir", type=str, help="Path to a sandbox directory to contain all processed files and generated plans.")
         subparser[cmd].add_argument( "--planning-tasks-dir", type=str, help="Path to the directory containing all planning tasks.")
 
+    for cmd in ["analyze"]:
+        subparser[cmd].add_argument( "--dump-results-dir", type=str, help="Path to the directory containing all results.")
+        subparser[cmd].add_argument( "--error-logs-dir", type=str, help="Path to the directory containing all error logs.")
+
     return parser
 
 _COMMANDS = {
@@ -77,4 +82,11 @@ _COMMANDS = {
         "fn": generator.generate,
         "desc": "Generate the planning task cmds."
     },
+    "analyze": {
+        "fn": analyzer.analyze,
+        "desc": "Analyze the results."
+    },
 }
+
+if __name__ == "__main__":
+    sys.exit(main())

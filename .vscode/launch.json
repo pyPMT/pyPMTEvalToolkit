@@ -34,6 +34,19 @@
                 "--results-dump-dir", "${workspaceFolder}/sandbox-dir/dump_results"
             ],
             "justMyCode": false
+        },
+        {
+            "name": "Analyze run",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/pypmt_eval_toolkit/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "analyze",
+                "--dump-results-dir", "${workspaceFolder}/sandbox-dir/dump_results",
+                "--error-logs-dir", "${workspaceFolder}/sandbox-dir/errors",
+            ],
+            "justMyCode": false
         }
     ]
 }
