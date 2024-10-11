@@ -15,13 +15,10 @@ def solve(args):
         import unified_planning.plans as up_plans
         # Register the planners.
         import up_pypmt 
-        import up_cpor
         import up_enhsp
         import up_fast_downward
         import up_pyperplan
-        import up_spiderplan
         import up_symk
-        import up_tamer
         
         with tempfile.TemporaryDirectory(dir=args.run_dir) as tmpdirname:
             planner_cfg       = json.load(open(args.planner_cfg_file))

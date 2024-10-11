@@ -1,0 +1,7 @@
+{
+    "name": "demo",
+    "cfgs": {
+        "timelimit" : "00:30:00",
+        "memorylimit": "10GB"
+    }
+}

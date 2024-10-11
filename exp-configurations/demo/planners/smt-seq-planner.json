@@ -1,0 +1,15 @@
+{
+    "planner-tag": "SequentialSMT-tag",
+    "up-planner-name": "SMTPlanner",
+    "planner-params": {
+        "encoder": "EncoderSequentialSMT",
+        "upper-bound": 1000,
+        "search-strategy": "SMTSearch",
+        "configuration": "seq",
+        "run-validation": false,
+        "compliation-list": [
+            ["up_quantifiers_remover", "QUANTIFIERS_REMOVING"],
+            ["fast-downward-reachability-grounder", "GROUNDING"]
+        ]
+    }
+}

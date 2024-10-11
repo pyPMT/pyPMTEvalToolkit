@@ -47,7 +47,11 @@ Here is the content for `smt-seq-planner.json`:
         "upper-bound": 1000,
         "search-strategy": "SMTSearch",
         "configuration": "seq",
-        "run-validation": false
+        "run-validation": false,
+        "compliation-list": [
+            ["up_quantifiers_remover", "QUANTIFIERS_REMOVING"],
+            ["fast-downward-reachability-grounder", "GROUNDING"]
+        ]
     }
 }
 ```
@@ -61,8 +65,12 @@ Here is the content for `smt-par-planner.json`:
         "encoder": "EncoderParallelSMT",
         "upper-bound": 1000,
         "search-strategy": "SMTSearch",
-        "configuration": "seqForall",
-        "run-validation": false
+        "configuration": "forall",
+        "run-validation": false,
+        "compliation-list": [
+            ["up_quantifiers_remover", "QUANTIFIERS_REMOVING"],
+            ["fast-downward-reachability-grounder", "GROUNDING"]
+        ]
     }
 }
 ```
