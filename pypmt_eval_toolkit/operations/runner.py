@@ -19,22 +19,33 @@ def solve(args):
         import up_fast_downward
         import up_pyperplan
         import up_symk
+        # Try planmt if registered.
+        try:
+            import planmt
+        except ImportError:
+            pass # This is for now until the code is published.
         
-        with tempfile.TemporaryDirectory(dir=args.run_dir) as tmpdirname:
-            planner_cfg       = json.load(open(args.planner_cfg_file))
-            planner_tag       = getkeyvalue(planner_cfg, 'planner-tag')
-            up_planner_name   = getkeyvalue(planner_cfg, 'up-planner-name')
-            up_planner_params = getkeyvalue(planner_cfg, 'planner-params')
-            
-            assert up_planner_name is not None, "up-planner-name is not defined in the planner configuration file."
-            assert up_planner_params is not None, "planner-param is not defined in the planner configuration file."
-            assert planner_tag is not None, "planner-tag is not defined in the planner configuration file."
+        planner_cfg       = json.load(open(args.planner_cfg_file))
+        planner_tag       = getkeyvalue(planner_cfg, 'planner-tag')
+        up_planner_name   = getkeyvalue(planner_cfg, 'up-planner-name')
+        up_planner_params = getkeyvalue(planner_cfg, 'planner-params')
+        stats_file        = getkeyvalue(planner_cfg, 'stats_file')
 
+        assert up_planner_name is not None, "up-planner-name is not defined in the planner configuration file."
+        assert up_planner_params is not None, "planner-param is not defined in the planner configuration file."
+        assert planner_tag is not None, "planner-tag is not defined in the planner configuration file."
+
+        os.makedirs(args.run_dir, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=args.run_dir) as tmpdirname:
             start_time = time.time()
             task = up_io.PDDLReader().parse_problem(args.domain, args.problem)
             end_time = time.time()
             pddl_parse_time = end_time - start_time
-            
+
+            # rename stats-file
+            if stats_file is not None:
+                up_planner_params["stats_file"] = os.path.join(tmpdirname, stats_file)
+
             start_time = time.time()
             with up_shortcuts.OneshotPlanner(name=up_planner_name,  params=up_planner_params) as planner:
                 result = planner.solve(task)
@@ -69,6 +80,11 @@ def solve(args):
             dumpresult['debug-info']['domain-file']  = args.domain
             dumpresult['debug-info']['problem-file'] = args.problem
             
+            # check if there is a state-file
+            if os.path.exists(up_planner_params["stats_file"]):
+                with open(up_planner_params["stats_file"], 'r') as stats_file_handle:
+                    dumpresult['stats'] = {k:eval(v) for k, v in map(lambda e:e.strip().split(': '), stats_file_handle.readlines())}
+
             # Dump this to the output directory.
             dumpfile = os.path.join(args.results_dump_dir, f"{planner_tag}-{args.domainname}-{args.instanceno}-{args.ipc_year}.json")
             # make sure that the directory exists
