@@ -81,7 +81,7 @@ def solve(args):
             dumpresult['debug-info']['problem-file'] = args.problem
             
             # check if there is a state-file
-            if os.path.exists(up_planner_params["stats_file"]):
+            if "stats_file" in up_planner_params and os.path.exists(up_planner_params["stats_file"]):
                 with open(up_planner_params["stats_file"], 'r') as stats_file_handle:
                     dumpresult['stats'] = {k:eval(v) for k, v in map(lambda e:e.strip().split(': '), stats_file_handle.readlines())}
 
