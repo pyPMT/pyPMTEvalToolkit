@@ -24,6 +24,8 @@ def solve(args):
             import planmt
         except ImportError:
             pass # This is for now until the code is published.
+        finally:
+            pass
         
         planner_cfg       = json.load(open(args.planner_cfg_file))
         planner_tag       = getkeyvalue(planner_cfg, 'planner-tag')
@@ -72,7 +74,7 @@ def solve(args):
 
             dumpresult['task-result']['summary'] = defaultdict(dict)
             dumpresult['task-result']['summary']['status'] = result.status.name
-            dumpresult['task-result']['summary']['log_messages'] = [] if result.log_messages is None else result.log_messages
+            # dumpresult['task-result']['summary']['log_messages'] = [] if result.log_messages is None else result.log_messages
 
             dumpresult['task-result']['plan'] = up_io.PDDLWriter(task).get_plan(seedplan).split('\n')[:-1]
 
