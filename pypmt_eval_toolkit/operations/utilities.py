@@ -100,11 +100,15 @@ def getkeyvalue(data, target_key):
     return None
 
 def warpCommand(cmd, timelimt, memorylimit, slurmdumpdir):
+    args = cmd.split(' ')
+    domainname = args[args.index('--domainname') + 1]
+    instanceno = args[args.index('--instanceno') + 1]
+    plannercfg = os.path.basename(args[args.index('--planner-cfg-file') + 1]).replace('.json', '')
+    taskname = f'{plannercfg}_{domainname}_{instanceno}'
     return f"""#!/bin/bash
-#SBATCH --job-name=task-%x-%j
-#SBATCH --partition=sturm-part
-#SBATCH -e {slurmdumpdir}/task-%x-%j.error
-#SBATCH -o {slurmdumpdir}/task-%x-%j.output
+#SBATCH --job-name={taskname}
+#SBATCH -e {slurmdumpdir}/{taskname}.error
+#SBATCH -o {slurmdumpdir}/{taskname}.output
 #SBATCH --cpus-per-task=1
 #SBATCH --mem={memorylimit}
 #SBATCH --time={timelimt}
