@@ -62,6 +62,7 @@ def _create_arg_parser():
     
     for cmd in ["generate"]:
         subparser[cmd].add_argument( "--venv-dir" , type=str, help="Path to the virtual environment directory.")
+        subparser[cmd].add_argument( "--apptainer-image", type=str, help="Path to the Apptainer image.")
         subparser[cmd].add_argument( "--exp-details-dir", type=str, help="Path to the directory containing all results.")
 
         subparser[cmd].add_argument( "--sandbox-dir", type=str, help="Path to a sandbox directory to contain all processed files and generated plans.")

@@ -24,6 +24,8 @@ def generate(args):
             main_entry = 'pypmtevalcli'
             if args.venv_dir:
                 generated_cmds.add(f'source {args.venv_dir}/bin/activate && {main_entry} {cmd} && deactivate')
+            elif args.apptainer_image:
+                generated_cmds.add(f'apptainer run --cleanenv --bind {args.sandbox_dir}:/app/sandbox_dir {args.apptainer_image} {cmd}')
             else:
                 generated_cmds.add(f'python {main_entry} {cmd}')
     # dump those commands to a file.
