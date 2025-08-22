@@ -61,7 +61,7 @@ def parse_planning_tasks(planningtasksdir:str):
                 if not (os.path.exists(planning_problem['domainfile']) and os.path.exists(planning_problem['problemfile'])): continue
                 planning_problems.append(planning_problem)
                 covered_domains.add(os.path.basename(domainsroot))
-    return planning_problems
+    return sorted(planning_problems, key=lambda e:e['domainname'])
 
 def _get_planning_domains(directory_path):
     planning_domains = []
