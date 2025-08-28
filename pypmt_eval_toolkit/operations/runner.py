@@ -74,7 +74,7 @@ def solve(args):
 
             dumpresult['task-result']['summary'] = defaultdict(dict)
             dumpresult['task-result']['summary']['status'] = result.status.name
-            # dumpresult['task-result']['summary']['log_messages'] = [] if result.log_messages is None else result.log_messages
+            dumpresult['task-result']['summary']['log_messages'] = [] if result.log_messages is None else list(map(lambda l:l.message, result.log_messages))
 
             dumpresult['task-result']['plan'] = up_io.PDDLWriter(task).get_plan(seedplan).split('\n')[:-1]
 
