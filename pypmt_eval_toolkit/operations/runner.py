@@ -19,6 +19,7 @@ def solve(args):
         import up_fast_downward
         import up_pyperplan
         import up_symk
+        import up_patty
         # Try planmt if registered.
         try:
             import planmt
