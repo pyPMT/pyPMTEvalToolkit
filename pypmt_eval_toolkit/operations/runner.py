@@ -33,6 +33,7 @@ def solve(args):
         up_planner_name   = getkeyvalue(planner_cfg, 'up-planner-name')
         up_planner_params = getkeyvalue(planner_cfg, 'planner-params')
         stats_file        = getkeyvalue(planner_cfg, 'stats_file')
+        detect_symmetries = getkeyvalue(planner_cfg, 'detect_symmetries')
 
         assert up_planner_name is not None, "up-planner-name is not defined in the planner configuration file."
         assert up_planner_params is not None, "planner-param is not defined in the planner configuration file."
@@ -48,6 +49,9 @@ def solve(args):
             # rename stats-file
             if stats_file is not None:
                 up_planner_params["stats_file"] = os.path.join(tmpdirname, stats_file)
+            
+            if detect_symmetries is not None:
+                up_planner_params["detect_symmetries"] = detect_symmetries.lower() == 'true'
 
             start_time = time.time()
             with up_shortcuts.OneshotPlanner(name=up_planner_name,  params=up_planner_params) as planner:
