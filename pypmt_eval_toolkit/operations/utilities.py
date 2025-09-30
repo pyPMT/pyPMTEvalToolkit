@@ -52,7 +52,7 @@ def parse_planning_tasks(planningtasksdir:str):
                 _instanceno = no+1
                 planning_problem                = defaultdict(dict)
                 planning_problem['domainname']  = _domainname
-                planning_problem['instanceno']  = _instanceno
+                planning_problem['instanceno']  = os.path.basename(problem[1]).replace('.pddl','')
                 planning_problem['ipc_year']    = _ipc_year
                 planning_problem['domainfile']  = os.path.join(os.path.dirname(domainsroot), problem[0])
                 planning_problem['problemfile'] = os.path.join(os.path.dirname(domainsroot), problem[1])

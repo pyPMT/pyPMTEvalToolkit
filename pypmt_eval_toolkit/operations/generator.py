@@ -14,6 +14,8 @@ def generate(args):
     expdetails = parse_experiment_details(args.exp_details_dir)
     # Parse the planning tasks dir.
     planning_tasks = parse_planning_tasks(args.planning_tasks_dir)
+    # Filter planning tasks based on the experiment details.
+    planning_tasks = list(filter(lambda p: (p['ipc_year'], p['domainname'], p['instanceno']) in set(map(tuple, expdetails['exp-details']['selected-tasks'])), planning_tasks))
     # Now for every planner configuration, generate the cmd for each planning task.
     expdetails_jsonfile = os.path.join(args.exp_details_dir, "exp-details.json")
     generated_cmds = set()
