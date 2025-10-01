@@ -54,7 +54,7 @@ def _create_arg_parser():
         subparser[cmd].add_argument( "--problem",     type=str, help="Path to a problem file.")
         
         subparser[cmd].add_argument( "--domainname",  type=str, help="Domain name ")
-        subparser[cmd].add_argument( "--instanceno",  type=int, help="Instance number ")
+        subparser[cmd].add_argument( "--instanceno",  type=str, help="Instance number ")
         subparser[cmd].add_argument( "--ipc-year",    type=str, help="Path to the directory containing all results.")
 
         subparser[cmd].add_argument( "--run-dir")
