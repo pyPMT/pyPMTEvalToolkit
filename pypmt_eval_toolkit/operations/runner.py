@@ -22,7 +22,7 @@ def solve(args):
         import up_patty
         # Try planmt if registered.
         try:
-            import planmt
+            import rantanplan
         except ImportError:
             pass # This is for now until the code is published.
         finally:
