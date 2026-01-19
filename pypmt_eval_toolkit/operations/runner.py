@@ -20,10 +20,10 @@ def solve(args):
         import up_pyperplan
         import up_symk
         import up_patty
+        import aspplanner
         # Try planmt if registered.
         try:
             import rantanplan
-            import aspplanner
         except ImportError:
             pass # This is for now until the code is published.
         finally:
