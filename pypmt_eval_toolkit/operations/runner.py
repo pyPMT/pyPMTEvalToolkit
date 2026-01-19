@@ -23,6 +23,7 @@ def solve(args):
         # Try planmt if registered.
         try:
             import rantanplan
+            import aspplanner
         except ImportError:
             pass # This is for now until the code is published.
         finally:
