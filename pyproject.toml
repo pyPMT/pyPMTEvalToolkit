@@ -16,6 +16,7 @@ up-pyperplan = "^1.1.0"
 up-fast-downward = "^0.4.1"
 setuptools="^75.1.0"
 up-patty = {git = "https://github.com/pyPMT/up-patty.git"}
+aspplanner = {git = "git+https://github.com/MFaisalZaki/ASPPlanner.git"}
 
 [build-system]
 requires = ["poetry-core"]
