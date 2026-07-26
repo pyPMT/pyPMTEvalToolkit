@@ -2,6 +2,12 @@
     "name": "demo",
     "cfgs": {
         "timelimit" : "00:30:00",
-        "memorylimit": "10GB"
+        "memorylimit": "10GB",
+        "validate-plans": true
+    },
+    "tasks": {
+        "tracks": ["classical", "numeric"],
+        "max-instances-per-domain": 10,
+        "selection": "even"
     }
 }

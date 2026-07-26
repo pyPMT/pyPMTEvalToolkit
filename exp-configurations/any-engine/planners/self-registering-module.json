@@ -1,0 +1,7 @@
+{
+    "planner-tag": "ENHSP-opt",
+    "up-planner-name": "opt-enhsp",
+    "up-planner-module": "up_enhsp",
+    "planner-params": {},
+    "tracks": ["classical", "numeric"]
+}

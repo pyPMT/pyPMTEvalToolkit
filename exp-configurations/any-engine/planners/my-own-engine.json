@@ -1,0 +1,8 @@
+{
+    "planner-tag": "MyEngine",
+    "up-planner-name": "my-engine",
+    "up-planner-class": "my_package.my_module:MyOneshotPlanner",
+    "planner-params": {
+        "heuristic": "hff"
+    }
+}

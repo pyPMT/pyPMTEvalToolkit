@@ -5,33 +5,68 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Generator",
+            "name": "Engines",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/pypmt_eval_toolkit/main.py",
+            "module": "pypmt_eval_toolkit.cli",
             "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
             "args": [
-                "generate", 
-                "--exp-details-dir", "${workspaceFolder}/../exp-configurations/exp-demo",
-                "--sandbox-dir",     "${workspaceFolder}/../sandbox-dir",
-                //"--planning-tasks-dir", "${workspaceFolder}/pkgs/classical-domains",
-                "--planning-tasks-dir", "${workspaceFolder}/pkgs/numeric_benchmarks"
+                "engines",
+                "--exp-dir", "${workspaceFolder}/exp-configurations/demo"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Discover",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pypmt_eval_toolkit.cli",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "discover",
+                "--tasks-dir", "classical-domains=${workspaceFolder}/benchmark-run/benchmark-tasks/classical-domains"
+            ]
+        },
+        {
+            "name": "Generate",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pypmt_eval_toolkit.cli",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "generate",
+                "--exp-dir", "${workspaceFolder}/exp-configurations/demo",
+                "--sandbox-dir", "${workspaceFolder}/sandbox-dir",
+                "--tasks-dir", "numeric-domains=${workspaceFolder}/benchmark-run/benchmark-tasks/numeric-domains"
             ]
         },
         {
             "name": "Solve-dev",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/pypmt_eval_toolkit/main.py",
+            "module": "pypmt_eval_toolkit.cli",
             "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
             "args": [
-                "solve", "--domainname", "rovers", "--instanceno", "1", "--ipc-year", "2006",
-                "--planner-cfg-file", "${workspaceFolder}/exp-configurations/demo/planners/smt-par-planner.json", 
-                "--exp-details-dir", "${workspaceFolder}/exp-configurations/demo/exp-details.json", 
-                "--run-dir", "${workspaceFolder}/sandbox-dir/planners_run", 
-                "--domain",  "${workspaceFolder}/pkgs/classical-domains/classical/rovers/domain.pddl", 
-                "--problem", "${workspaceFolder}/pkgs/classical-domains/classical/rovers/p01.pddl", 
-                "--results-dump-dir", "${workspaceFolder}/sandbox-dir/dump_results"
+                "solve",
+                "--planner-cfg", "${workspaceFolder}/exp-configurations/demo/planners/smt-par-planner.json",
+                "--task-id", "classical-domains:rovers:p01",
+                "--suite", "classical-domains",
+                "--domain-name", "rovers",
+                "--instance", "p01",
+                "--track", "classical",
+                "--ipc", "2006",
+                "--domain", "${workspaceFolder}/benchmark-run/benchmark-tasks/classical-domains/classical/rovers/domain.pddl",
+                "--problem", "${workspaceFolder}/benchmark-run/benchmark-tasks/classical-domains/classical/rovers/p01.pddl",
+                "--results-dir", "${workspaceFolder}/sandbox-dir/results/ParallelSMT-tag",
+                "--errors-dir", "${workspaceFolder}/sandbox-dir/errors",
+                "--run-dir", "${workspaceFolder}/sandbox-dir/runs",
+                "--keep-run-dir",
+                "--time-limit", "600",
+                "--memory-limit", "8192"
             ],
             "justMyCode": false
         },
@@ -39,12 +74,26 @@
             "name": "Analyze run",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/pypmt_eval_toolkit/main.py",
+            "module": "pypmt_eval_toolkit.cli",
             "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
             "args": [
                 "analyze",
-                "--dump-results-dir", "${workspaceFolder}/sandbox-dir/dump_results",
-                "--error-logs-dir", "${workspaceFolder}/sandbox-dir/errors",
+                "--sandbox-dir", "${workspaceFolder}/sandbox-dir",
+                "--per-domain"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Report",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pypmt_eval_toolkit.cli",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "report",
+                "--sandbox-dir", "${workspaceFolder}/sandbox-dir"
             ],
             "justMyCode": false
         }

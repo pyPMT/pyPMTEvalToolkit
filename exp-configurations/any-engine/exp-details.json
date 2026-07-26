@@ -1,0 +1,17 @@
+{
+    "name": "any-engine",
+    "cfgs": {
+        "timelimit": "00:05:00",
+        "memorylimit": "4GB",
+        "validate-plans": true,
+        "slurm": {
+            "cpus-per-task": 1,
+            "max-parallel-jobs": 20
+        }
+    },
+    "tasks": {
+        "tracks": ["classical", "numeric", "temporal"],
+        "max-instances-per-domain": 5,
+        "selection": "first"
+    }
+}

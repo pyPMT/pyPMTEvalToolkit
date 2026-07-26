@@ -1,28 +1,56 @@
 [tool.poetry]
 name = "pypmt-eval-toolkit"
-version = "0.1.0"
-description = "A package to evaluate plannerswith UP interface."
+version = "0.2.0"
+description = "Benchmark harness for planners exposed through the Unified Planning API."
 authors = ["MFaisalZaki <mustafa.faisal.eng@gmail.com>"]
 readme = "README.md"
+packages = [{ include = "pypmt_eval_toolkit" }]
 
+# The toolkit itself needs unified-planning and nothing else: an engine is
+# resolved by name at run time, so *which* planners are installed is the
+# environment's business, not the harness's. Every engine below is therefore an
+# optional extra -- install the ones you want to benchmark, or bring your own
+# and point at it with "up-planner-module" / "up-planner-class".
 [tool.poetry.dependencies]
 python = "^3.9"
 unified-planning = "^1.1.0"
-pypmt = {git = "https://github.com/pyPMT/pyPMT.git"}
-up_pypmt = {git = "https://github.com/pyPMT/up-pypmt.git"}
-up-enhsp = "^0.0.25"
-up-symk = "^1.3.0"
-up-pyperplan = "^1.1.0"
-up-fast-downward = "^0.4.1"
-setuptools="^75.1.0"
-up-patty = {git = "https://github.com/pyPMT/up-patty.git"}
-aspplanner = {git = "git+https://github.com/MFaisalZaki/ASPPlanner.git"}
+setuptools = "^75.1.0"
+
+matplotlib = { version = "^3.6", optional = true }
+pypmt = { git = "https://github.com/pyPMT/pyPMT.git", optional = true }
+up_pypmt = { git = "https://github.com/pyPMT/up-pypmt.git", optional = true }
+up-enhsp = { version = "^0.0.25", optional = true }
+up-symk = { version = "^1.3.0", optional = true }
+up-pyperplan = { version = "^1.1.0", optional = true }
+up-fast-downward = { version = "^0.4.1", optional = true }
+up-patty = { git = "https://github.com/pyPMT/up-patty.git", optional = true }
+aspplanner = { git = "https://github.com/MFaisalZaki/ASPPlanner.git", optional = true }
+
+[tool.poetry.extras]
+# `report`'s figures only; its tables run on stdlib alone (--no-plots), so the
+# harness stays installable on a bare compute node.
+plots = ["matplotlib"]
+
+pypmt = ["pypmt", "up_pypmt"]
+enhsp = ["up-enhsp"]
+symk = ["up-symk"]
+pyperplan = ["up-pyperplan"]
+fast-downward = ["up-fast-downward"]
+patty = ["up-patty"]
+asp = ["aspplanner"]
+
+engines = [
+    "pypmt", "up_pypmt", "up-enhsp", "up-symk", "up-pyperplan",
+    "up-fast-downward", "up-patty", "aspplanner",
+]
+all = [
+    "matplotlib", "pypmt", "up_pypmt", "up-enhsp", "up-symk", "up-pyperplan",
+    "up-fast-downward", "up-patty", "aspplanner",
+]
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-pypmtevalcli = 'pypmt_eval_toolkit.main:main'
-
-
+pypmtevalcli = 'pypmt_eval_toolkit.cli:main'
