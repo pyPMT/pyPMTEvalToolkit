@@ -192,6 +192,7 @@ debug.py
 tmpfile.pddl
 sandbox*/
 sandbox*
+benchmark-run/
 
 *.sas*
 *.cProfile

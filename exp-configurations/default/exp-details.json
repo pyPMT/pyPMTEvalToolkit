@@ -1,0 +1,28 @@
+{
+    "name": "default",
+    "cfgs": {
+        "timelimit": "00:30:00",
+        "memorylimit": "8GB",
+        "slurm-time-headroom": "00:05:00",
+        "slurm-memory-headroom": "1GB",
+        "validate-plans": true,
+        "slurm": {
+            "cpus-per-task": 1,
+            "partition": null,
+            "account": null,
+            "qos": null,
+            "max-parallel-jobs": 50,
+            "max-array-size": 1000,
+            "extra-directives": []
+        }
+    },
+    "tasks": {
+        "tracks": ["classical", "numeric", "temporal"],
+        "max-instances-per-domain": 0,
+        "selection": "even",
+        "include-domains": [],
+        "exclude-domains": [],
+        "ipc-years": [],
+        "selected-tasks": []
+    }
+}

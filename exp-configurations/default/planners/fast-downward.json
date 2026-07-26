@@ -1,0 +1,6 @@
+{
+    "planner-tag": "FastDownward",
+    "up-planner-name": "fast-downward",
+    "planner-params": {},
+    "tracks": ["classical"]
+}
