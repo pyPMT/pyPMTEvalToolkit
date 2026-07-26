@@ -429,6 +429,48 @@ def _plan_lines(problem, plan) -> List[str]:
         return [line for line in str(plan).splitlines() if line.strip()]
 
 
+def _rebind_plan(problem, plan, result: Dict[str, Any]):
+    """Point a plan's action instances back at *this* problem's actions.
+
+    An engine is free to solve a rewritten copy of the problem and hand back a
+    plan over that copy's actions -- pyPMT strips redundant delete-then-set
+    effects before it encodes anything, so a rovers ``communicate_rock_data``
+    comes back one effect lighter than the one we parsed. UP identifies an
+    action by its whole definition rather than by its name, so the validator
+    rejects such a plan outright ("does not belong to the given problem")
+    without checking a single precondition.
+
+    Re-binding by name and arity restores the link without weakening the check:
+    the actions come from the original problem, so it is still the original
+    preconditions and effects the plan is validated against. ``None`` means
+    some action could not be matched at all -- a grounded plan that was never
+    lifted back, say -- and the caller reports that as "no validation" rather
+    than as a bad plan.
+    """
+    from unified_planning.plans import ActionInstance
+
+    unmatched: List[str] = []
+
+    def rebind(instance):
+        action = instance.action
+        original = problem.action(action.name) if problem.has_action(action.name) else None
+        if original is None or len(original.parameters) != len(instance.actual_parameters):
+            unmatched.append(action.name)
+            return instance
+        if original is action:
+            return instance
+        return ActionInstance(original, instance.actual_parameters,
+                              instance.agent, instance.motion_paths)
+
+    rebound = plan.replace_action_instances(rebind)
+    if unmatched:
+        result['logs'].append(
+            'Validation unavailable: the plan names actions this problem does '
+            f'not have: {", ".join(sorted(set(unmatched)))}')
+        return None
+    return rebound
+
+
 def _validate(problem, plan, result: Dict[str, Any]) -> Optional[bool]:
     """Re-check the plan against the *original* problem with a UP validator.
 
@@ -438,6 +480,9 @@ def _validate(problem, plan, result: Dict[str, Any]) -> Optional[bool]:
     """
     try:
         import unified_planning.shortcuts as up_shortcuts
+        plan = _rebind_plan(problem, plan, result)
+        if plan is None:
+            return None
         with up_shortcuts.PlanValidator(problem_kind=problem.kind,
                                         plan_kind=plan.kind) as validator:
             outcome = validator.validate(problem, plan)
