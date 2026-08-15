@@ -209,7 +209,7 @@ def _launcher_prefix(args) -> str:
         return f'apptainer run --cleanenv {image} '
     if getattr(args, 'venv_dir', None):
         activate = shlex.quote(os.path.join(os.path.abspath(args.venv_dir), 'bin', 'activate'))
-        return f'. {activate} && '
+        return f'source {activate} && '
     return ''
 
 
