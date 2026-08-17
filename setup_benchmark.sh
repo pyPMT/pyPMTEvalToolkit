@@ -4,7 +4,8 @@
 #
 #   1. ask for the per-task time and memory limits (and a few other knobs),
 #   2. create a virtualenv and install this toolkit plus the engines the
-#      experiment's planner configurations actually name,
+#      experiment's planner configurations actually name, plus any extra
+#      python packages passed with --packages,
 #   3. fetch the benchmark repositories for the tracks you picked,
 #   4. write the experiment configuration with those limits,
 #   5. generate one run command per (planner, task) and the slurm job arrays.
@@ -41,6 +42,7 @@ ACCOUNT=""
 QOS=""
 MAX_PARALLEL="50"
 EXTRAS=""
+PACKAGES=""
 SKIP_FETCH="no"
 SKIP_INSTALL="no"
 PER_TASK_SCRIPTS="no"
@@ -85,6 +87,12 @@ Options:
   --max-parallel N        cap on concurrently running array jobs
   --extras "a,b"          extras to install on top of the ones the planner
                           configurations imply (e.g. "plots,symk")
+  --packages "a b"        extra python packages to pip install into the venv,
+                          space or comma separated. Anything pip accepts works:
+                          PyPI names ("up-enhsp up-symk==1.3.1"), and a local
+                          checkout given as a directory is installed editable
+                          (-e), so a planner under development stays live
+                          (e.g. "up-enhsp ~/dev/my-planner")
   --per-task-scripts      also emit one .sbatch per task (default: job arrays)
   --skip-fetch            do not clone/update the benchmark repositories
   --skip-install          do not create the venv or install anything
@@ -113,6 +121,7 @@ while [ $# -gt 0 ]; do
         --qos)              QOS="$2"; shift 2 ;;
         --max-parallel)     MAX_PARALLEL="$2"; shift 2 ;;
         --extras)           EXTRAS="$2"; shift 2 ;;
+        --packages)         PACKAGES="$2"; shift 2 ;;
         --per-task-scripts) PER_TASK_SCRIPTS="yes"; shift ;;
         --skip-fetch)       SKIP_FETCH="yes"; shift ;;
         --skip-install)     SKIP_INSTALL="yes"; shift ;;
@@ -122,10 +131,9 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-VENV_DIR="${VENV_DIR:-${WORK_DIR}/venv}"
-TASKS_DIR="${TASKS_DIR:-${WORK_DIR}/benchmark-tasks}"
-# SANDBOX_DIR and EXP_DIR default per configuration, so they are resolved once
-# the configuration is known (below).
+# VENV_DIR and TASKS_DIR default under WORK_DIR, which is itself prompted, so
+# they are resolved after the prompts; SANDBOX_DIR and EXP_DIR additionally
+# default per configuration, so they are resolved once that is known (below).
 
 # ---------------------------------------------------------------- helpers ---
 say()  { printf '\033[1m==>\033[0m %s\n' "$*"; }
@@ -258,6 +266,12 @@ run with --list-configs to see the shipped ones"
 [ -f "${TEMPLATE_DIR}/exp-details.json" ] || \
     die "${TEMPLATE_DIR} holds no exp-details.json, so it is not a configuration"
 
+# Everything the experiment produces -- venv, benchmark tasks, run commands,
+# results, logs -- lives under this root unless a --*-dir flag says otherwise.
+ask "Experiment root (venv, tasks, commands, results)" "$WORK_DIR" WORK_DIR
+VENV_DIR="${VENV_DIR:-${WORK_DIR}/venv}"
+TASKS_DIR="${TASKS_DIR:-${WORK_DIR}/benchmark-tasks}"
+
 # One experiment and one sandbox per configuration: seeding a second
 # configuration into a directory that already holds another would union their
 # planner sets and mix their results.
@@ -272,6 +286,30 @@ ask "Slurm partition (blank = site default)"     "$PARTITION"     PARTITION
 ask "Slurm account (blank = site default)"       "$ACCOUNT"       ACCOUNT
 ask "Slurm QOS (blank = site default)"           "$QOS"           QOS
 ask "Max array jobs running at once"             "$MAX_PARALLEL"  MAX_PARALLEL
+ask "Extra python packages for the venv (blank = none)" "$PACKAGES" PACKAGES
+
+# Commas and spaces both separate packages, so a requirements-style
+# "up-enhsp,up-symk" and a shell-style "up-enhsp up-symk" both work.
+PACKAGE_LIST="$(printf '%s' "$PACKAGES" | tr ',' ' ')"
+
+# An entry that is a directory is a local checkout under development, so it is
+# installed editable; everything else (PyPI names, pins, VCS URLs) goes to pip
+# as given. An explicit -e is honoured either way.
+PACKAGE_ARGS=()
+NEXT_IS_EDITABLE="no"
+for pkg in $PACKAGE_LIST; do
+    case "$pkg" in
+        -e|--editable) NEXT_IS_EDITABLE="yes"; continue ;;
+        # A quoted --packages "~/dev/x" keeps its tilde from the shell.
+        "~/"*) pkg="${HOME}/${pkg#\~/}" ;;
+    esac
+    if [ "$NEXT_IS_EDITABLE" = "yes" ] || [ -d "$pkg" ]; then
+        PACKAGE_ARGS+=(-e "$pkg")
+    else
+        PACKAGE_ARGS+=("$pkg")
+    fi
+    NEXT_IS_EDITABLE="no"
+done
 
 for track in $TRACKS; do
     case "$track" in
@@ -290,6 +328,7 @@ say "sandbox      ${SANDBOX_DIR}"
 say "experiment   ${EXP_DIR}"
 say "limits       ${TIME_LIMIT} / ${MEMORY_LIMIT} per task"
 say "tracks       ${TRACKS}"
+[ ${#PACKAGE_ARGS[@]} -gt 0 ] && say "packages     ${PACKAGE_ARGS[*]}"
 echo
 
 mkdir -p "$WORK_DIR" "$TASKS_DIR"
@@ -384,6 +423,7 @@ ALL_EXTRAS="$(printf '%s,%s' "$IMPLIED_EXTRAS" "$EXTRAS" | tr ',' '\n' | sed '/^
 
 if [ "$SKIP_INSTALL" = "yes" ]; then
     say "skipping installation (--skip-install)"
+    [ ${#PACKAGE_ARGS[@]} -gt 0 ] && warn "--skip-install also skips the extra packages: ${PACKAGE_ARGS[*]}"
     [ -x "${VENV_DIR}/bin/pypmtevalcli" ] || warn "no pypmtevalcli in ${VENV_DIR}; generation will fail"
 else
     if [ ! -d "$VENV_DIR" ]; then
@@ -401,6 +441,10 @@ else
     else
         say "installing the toolkit"
         python -m pip install --quiet -e "${REPO_DIR}"
+    fi
+    if [ ${#PACKAGE_ARGS[@]} -gt 0 ]; then
+        say "installing extra packages: ${PACKAGE_ARGS[*]}"
+        python -m pip install --quiet "${PACKAGE_ARGS[@]}"
     fi
     deactivate
 fi

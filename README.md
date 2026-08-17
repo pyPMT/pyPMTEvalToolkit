@@ -27,11 +27,17 @@ Available experiment configurations:
 Experiment configuration [default]:
 ```
 
-then for the time/memory limits and the slurm knobs. From there it creates a
-virtualenv, installs this toolkit plus the engines that configuration's planners
-actually name, clones the benchmark repositories, writes an experiment with the
-limits you gave, and generates the slurm job arrays. It ends by printing the
-`sbatch` command that starts the sweep.
+then where everything should live (one root directory holds the venv, the
+benchmark tasks, and the generated commands and results), the time/memory
+limits, the slurm knobs, and any extra python packages the venv should get —
+planners published on PyPI, or a local checkout given as a directory, which
+is installed editable so a planner under development stays live. From there
+it creates a
+virtualenv, installs this toolkit plus the engines that configuration's
+planners actually name plus those packages, clones the benchmark
+repositories, writes an experiment with the limits you gave, and generates
+the slurm job arrays. It ends by printing the `sbatch` command that starts
+the sweep.
 
 Everything it asks for also has a flag, so a scripted run is the same script:
 
@@ -40,6 +46,8 @@ Everything it asks for also has a flag, so a scripted run is the same script:
 ./setup_benchmark.sh --config any-engine --yes            # by name, no prompts
 ./setup_benchmark.sh --config /path/to/my-experiment --time-limit 30m \
                      --tracks "numeric temporal" --max-instances 20 --yes
+./setup_benchmark.sh --work-dir /scratch/$USER/pypmt-sweep \
+                     --packages "up-enhsp ~/dev/my-planner" --yes
 ```
 
 The chosen configuration is a *template*: it is copied into a working
