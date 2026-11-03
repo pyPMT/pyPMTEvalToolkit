@@ -2,8 +2,8 @@
 
 Produces what a planning paper's evaluation section is made of — a per-domain
 coverage table, the outcome breakdown (timeouts, memouts, errors), IPC-style
-time and quality scores, and the survival ("cactus") plots plus per-planner
-scatters.
+time and quality scores, the survival ("cactus") plots, plan-quality violins
+over the commonly solved instances, and per-pair runtime scatters.
 
 Tables are written as text *and* as LaTeX (booktabs) ready to ``\\input``.
 Plots need matplotlib (``pip install "pypmt-eval-toolkit[plots]"``); without it the
@@ -11,14 +11,18 @@ tables are still produced and the plots are skipped with a note.
 
 Design notes for the figures, since they end up in a paper:
 
-* colors come from a CVD-validated categorical set, and every series also
-  carries a distinct marker and dash pattern, so the figures survive both
-  colorblind readers and greyscale printing;
-* series colors are capped at three in the scatters (where every pair of colors
-  is compared at once) and at six in the line plots (where only adjacent pairs
-  are); past that the data is faceted rather than given new hues;
-* status colors are reserved for outcomes (solved/timeout/memout/error) and
-  never reused as a series color;
+* everything is black and white: a series is told apart by its marker shape,
+  filled or hollow, and its line style, never by a hue, so the figures print
+  on a monochrome printer and photocopy exactly as they appear on screen;
+* the cactus plots follow the planning-literature convention of *instances
+  solved* on the x axis and *time (or memory) on a log y axis*: a curve that
+  stays low and reaches far right is a good planner;
+* bars are told apart by hatch pattern and grey level, with outcomes
+  (solved / timeout / memout / error ...) on one fixed scheme that is never
+  reused for a planner;
+* there are as many line series as there are distinct marker/line-style
+  combinations; past that the data is faceted or truncated rather than drawn
+  in a style that already means something else;
 * one y-axis per plot, no dual scales.
 """
 
@@ -33,31 +37,45 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from .analyzer import MISSING, is_solved, load_rows
 from .runner import ERROR, EXHAUSTED, KILLED, MEMOUT, SOLVED, TIMEOUT, UNSOLVABLE, UNSUPPORTED
 
-# -- palette (validated: worst adjacent CVD dE 9.1, worst all-pairs 9.2) ------
-SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300']
-SERIES_MARKERS = ['o', 's', '^', 'D', 'v', 'P']
-SERIES_DASHES = [(None, None), (5, 2), (1.5, 1.5), (7, 2, 1.5, 2), (3, 1.5), (9, 3)]
-SCATTER_SERIES_CAP = 3          # all pairs of colors are compared at once there
-LINE_SERIES_CAP = 6
+# -- monochrome styling --------------------------------------------------------
+# A line series is identified by the triple (marker, filled-or-hollow, dashes).
+# The eight entries are ordered so that neighbours differ in at least two of
+# the three, which is what keeps adjacent curves apart in a dense cactus plot.
+SERIES_MARKERS = ['o', 's', '^', 'D', 'v', 'P', 'X', '*']
+SERIES_HOLLOW = [False, True, False, True, False, True, False, True]
+SERIES_DASHES = [(None, None), (5, 2), (1.5, 1.5), (7, 2, 1.5, 2),
+                 (3, 1.5), (9, 3), (1.5, 1.5, 5, 1.5), (4, 1.5, 1, 1.5, 1, 1.5)]
+LINE_SERIES_CAP = len(SERIES_MARKERS)
+# Runtime scatters: one marker per domain within a track. Fourteen shapes,
+# black first and then mid-grey, before a shape repeats; hollow is reserved
+# for "unsolved", so it never identifies a domain.
+DOMAIN_MARKERS = ['o', 's', '^', 'D', 'v', 'P', 'X', '*', '<', '>', 'p', 'h', 'd', '8']
+DOMAIN_FILLS = ['#000000', '#8c8c8c']
+# Bars: a hatch per planner, white fill, black edge.
+SERIES_HATCHES = ['', '////', '....', 'xxxx', '\\\\\\\\', '++++', 'oo', '**']
 
-STATUS_COLORS = {
-    SOLVED: '#0ca30c',          # good
-    TIMEOUT: '#fab219',         # warning
-    MEMOUT: '#ec835a',          # serious
-    ERROR: '#d03b3b',           # critical
-    KILLED: '#d03b3b',
-    EXHAUSTED: '#898781',
-    UNSOLVABLE: '#52514e',
-    UNSUPPORTED: '#c3c2b7',
-    MISSING: '#e1e0d9',
+# Outcomes: a fixed (grey level, hatch) per status, darkest for solved so the
+# useful part of a stacked bar reads first; the failure modes are light with a
+# distinct hatch each, and the "nothing happened" statuses are plain greys.
+STATUS_STYLE = {
+    SOLVED: ('#1a1a1a', ''),
+    TIMEOUT: ('#ffffff', '////'),
+    MEMOUT: ('#ffffff', '....'),
+    EXHAUSTED: ('#bdbdbd', ''),
+    UNSOLVABLE: ('#8c8c8c', ''),
+    UNSUPPORTED: ('#ffffff', ''),
+    ERROR: ('#ffffff', '\\\\\\\\'),
+    KILLED: ('#ffffff', 'xxxx'),
+    MISSING: ('#e6e6e6', ''),
 }
 STATUS_ORDER = [SOLVED, TIMEOUT, MEMOUT, EXHAUSTED, UNSOLVABLE, UNSUPPORTED, ERROR, KILLED, MISSING]
 
-INK = '#0b0b0b'
-INK_MUTED = '#898781'
-GRID = '#e1e0d9'
-AXIS = '#c3c2b7'
-SURFACE = '#fcfcfb'
+INK = '#000000'
+INK_MUTED = '#595959'
+GRID = '#d9d9d9'
+AXIS = '#8c8c8c'
+SURFACE = '#ffffff'
+INSTANCES_FILL = '#ededed'      # the instance-count backdrop behind coverage bars
 
 MIN_TIME = 0.1                  # floor for log axes and for the IPC time score
 
@@ -364,16 +382,14 @@ def _plots(rows, planners, tracks, plots_dir: str, formats: Sequence[str]) -> Op
     written.append(_coverage_bars(plt, rows, line_planners, tracks, plots_dir, formats))
     written.append(_outcome_bars(plt, rows, planners, plots_dir, formats))
 
+    written.append(_quality_violins(plt, rows, planners, tracks, plots_dir, formats))
+
     pairs = [(a, b) for i, a in enumerate(planners) for b in planners[i + 1:]]
     if len(pairs) > 6:
-        print(f'note: {len(pairs)} planner pairs, plotting the first 6 scatters')
+        print(f'note: {len(pairs)} planner pairs, plotting the first 6 runtime scatters')
         pairs = pairs[:6]
     for left, right in pairs:
-        written.append(_scatter(plt, rows, left, right, tracks, plots_dir, formats,
-                                what='runtime'))
-        quality = _scatter(plt, rows, left, right, tracks, plots_dir, formats, what='cost')
-        if quality:
-            written.append(quality)
+        written.append(_runtime_scatter(plt, rows, left, right, tracks, plots_dir, formats))
 
     return [w for w in written if w]
 
@@ -385,11 +401,14 @@ def _style(matplotlib) -> None:
         'font.sans-serif': ['DejaVu Sans', 'Helvetica', 'Arial'],
         'font.size': 9, 'axes.titlesize': 10, 'axes.labelsize': 9, 'legend.fontsize': 8,
         'xtick.labelsize': 8, 'ytick.labelsize': 8,
-        'axes.edgecolor': AXIS, 'axes.labelcolor': INK, 'text.color': INK,
-        'xtick.color': INK_MUTED, 'ytick.color': INK_MUTED,
-        'axes.grid': True, 'grid.color': GRID, 'grid.linewidth': 0.6,
+        'axes.edgecolor': INK, 'axes.linewidth': 0.8,
+        'axes.labelcolor': INK, 'text.color': INK,
+        'xtick.color': INK, 'ytick.color': INK,
+        'axes.grid': True, 'grid.color': GRID, 'grid.linewidth': 0.5,
         'axes.spines.top': False, 'axes.spines.right': False,
-        'lines.linewidth': 2.0, 'legend.frameon': False,
+        'lines.linewidth': 1.3, 'lines.color': INK,
+        'patch.edgecolor': INK, 'hatch.color': INK, 'hatch.linewidth': 0.6,
+        'legend.frameon': False,
         'figure.dpi': 200, 'savefig.bbox': 'tight', 'savefig.pad_inches': 0.02,
         'pdf.fonttype': 42,          # editable text in the PDF, as venues ask
     })
@@ -402,48 +421,72 @@ def _save(fig, plots_dir: str, name: str, formats: Sequence[str]) -> str:
     return f'{name}.{",".join(formats or ["pdf", "png"])}'
 
 
-def _survival_curve(rows) -> Tuple[List[float], List[int]]:
-    """Sorted solve times and the running count of instances solved by then."""
-    times = sorted(t for t in (_runtime(r) for r in rows if is_solved(r)) if t is not None)
-    return times, list(range(1, len(times) + 1))
+def _series_style(index: int, points: int) -> Dict[str, Any]:
+    """Keyword arguments that draw series ``index`` in its own monochrome style.
+
+    Black line, a marker shape, filled or hollow, and a dash pattern -- the
+    three together identify the series; no two of the first eight share more
+    than one of them with a neighbour.
+    """
+    hollow = SERIES_HOLLOW[index % len(SERIES_HOLLOW)]
+    return {
+        'color': INK,
+        'dashes': SERIES_DASHES[index % len(SERIES_DASHES)],
+        'marker': SERIES_MARKERS[index % len(SERIES_MARKERS)],
+        'markersize': 4.5,
+        'markerfacecolor': SURFACE if hollow else INK,
+        'markeredgecolor': INK,
+        'markeredgewidth': 0.9,
+        # Markers on every point in a small run; thinned on a long one so the
+        # line still shows through, but never fewer than ~10 per curve.
+        'markevery': max(1, points // 10),
+    }
 
 
-def _draw_survival(ax, rows, planners, limit: float, label_ends: bool = True) -> None:
+def _sorted_solved(rows, planner: str, value) -> List[float]:
+    """``value`` over this planner's solved rows, ascending -- a cactus curve."""
+    return sorted(v for v in (value(r) for r in rows if r['planner'] == planner and is_solved(r))
+                  if v is not None)
+
+
+def _draw_cactus(ax, rows, planners, value, limit: Optional[float]) -> int:
+    """One cactus curve per planner: instances solved (x) against the budget
+    (y, log) needed to solve that many -- the k-th point is the k-th cheapest
+    solved instance.
+
+    Returns the largest instance count drawn, 0 when nothing was.
+    """
     # Scale and range before any data: switching an empty axes to log while it
     # still holds the default (0, 1) range warns about the non-positive bound.
-    ax.set_xscale('log')
-    ax.set_xlim(MIN_TIME, limit * 1.05)
-    ends = []
+    ax.set_yscale('log')
+    widest = 0
     for index, planner in enumerate(planners):
-        times, counts = _survival_curve([r for r in rows if r['planner'] == planner])
-        if not times:
+        values = _sorted_solved(rows, planner, value)
+        if not values:
             continue
-        color = SERIES[index % len(SERIES)]
-        # Step to the limit so the line ends at the cutoff rather than mid-air.
-        ax.step(times + [limit], counts + [counts[-1]], where='post', color=color,
-                dashes=SERIES_DASHES[index % len(SERIES_DASHES)],
-                marker=SERIES_MARKERS[index % len(SERIES_MARKERS)],
-                markevery=max(1, len(times) // 8), markersize=4.5, label=planner)
-        ends.append((counts[-1], planner, color))
+        counts = list(range(1, len(values) + 1))
+        ax.plot(counts, values, label=planner, zorder=3, **_series_style(index, len(values)))
+        widest = max(widest, len(values))
+    if limit is not None:
+        ax.axhline(limit, color=AXIS, linewidth=0.8, dashes=(2, 2), zorder=1)
+        # Named at the right end: the legend lives in the upper left.
+        ax.annotate('limit', xy=(1, limit), xytext=(-3, 2), textcoords='offset points',
+                    xycoords=('axes fraction', 'data'), ha='right', fontsize=7,
+                    color=INK_MUTED)
+    # Start the count axis at 0 so the first solved instance stands off the
+    # spine, and leave room on the right so the last marker is not clipped.
+    ax.set_xlim(0, max(1, widest) * 1.04 + 0.5)
+    _integer_xaxis(ax)
+    return widest
 
-    if label_ends and ends:
-        # Direct labels, so identity is never carried by color alone -- stacked
-        # apart where two planners finish on the same count, which is the common
-        # case and would otherwise print one label on top of the other.
-        top = max(end for end, _, _ in ends)
-        gap = max(1.0, top * 0.055)
-        placed: List[float] = []
-        for end, planner, color in sorted(ends, key=lambda e: -e[0]):
-            target = end if not placed else min(end, placed[-1] - gap)
-            placed.append(target)
-            ax.annotate(planner, xy=(limit, target), xytext=(-4, 3),
-                        textcoords='offset points', ha='right', fontsize=7.5, color=color)
-    ax.axvline(limit, color=AXIS, linewidth=1.0, dashes=(2, 2), zorder=0)
-    _integer_yaxis(ax)
+
+def _integer_xaxis(ax) -> None:
+    """Instances are countable; half an instance is never a tick."""
+    from matplotlib.ticker import MaxNLocator
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
 
 def _integer_yaxis(ax) -> None:
-    """Instances are countable; half an instance is never a tick."""
     from matplotlib.ticker import MaxNLocator
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -451,10 +494,14 @@ def _integer_yaxis(ax) -> None:
 def _survival_plot(plt, rows, planners, plots_dir, formats) -> str:
     limit = _time_limit(rows)
     fig, ax = plt.subplots(figsize=(5.2, 3.4))
-    _draw_survival(ax, rows, planners, limit)
-    ax.set_xlabel('time (s, log scale)')
-    ax.set_ylabel('instances solved')
-    ax.set_title('Survival plot — instances solved within a time budget')
+    # Headroom below the floor so a run clamped to MIN_TIME is not drawn on the
+    # spine, and above the limit for the cutoff line and its label.
+    ax.set_ylim(MIN_TIME * 0.7, limit * 1.6)
+    _draw_cactus(ax, rows, planners, _runtime, limit)
+    ax.set_xlabel('instances solved')
+    ax.set_ylabel('time (s, log scale)')
+    ax.set_title('Survival plot — time needed to solve the k cheapest instances')
+    # The curves climb towards the right, which leaves the upper left empty.
     ax.legend(loc='upper left')
     fig.tight_layout()
     return _save(fig, plots_dir, 'survival', formats)
@@ -462,51 +509,44 @@ def _survival_plot(plt, rows, planners, plots_dir, formats) -> str:
 
 def _survival_facets(plt, rows, planners, tracks, plots_dir, formats) -> str:
     limit = _time_limit(rows)
-    fig, axes = plt.subplots(1, len(tracks), figsize=(3.1 * len(tracks), 3.0), sharex=True)
+    fig, axes = plt.subplots(1, len(tracks), figsize=(3.1 * len(tracks), 3.0), sharey=True)
     axes = axes if hasattr(axes, '__len__') else [axes]
     for ax, track in zip(axes, tracks):
-        _draw_survival(ax, [r for r in rows if r['track'] == track], planners, limit,
-                       label_ends=False)
+        ax.set_ylim(MIN_TIME * 0.7, limit * 1.6)
+        _draw_cactus(ax, [r for r in rows if r['track'] == track], planners, _runtime, limit)
         ax.set_title(track)
-        ax.set_xlabel('time (s)')
-    axes[0].set_ylabel('instances solved')
-    axes[-1].legend(loc='lower right')
+        ax.set_xlabel('instances solved')
+    axes[0].set_ylabel('time (s, log scale)')
+    axes[0].legend(loc='upper left')
     fig.suptitle('Survival plots per track', y=1.02)
     fig.tight_layout()
     return _save(fig, plots_dir, 'survival-per-track', formats)
 
 
 def _memory_survival_plot(plt, rows, planners, plots_dir, formats) -> str:
-    fig, ax = plt.subplots(figsize=(5.2, 3.4))
-    drawn = False
-    for index, planner in enumerate(planners):
-        memory = sorted(r['peak_memory_mb'] for r in rows
-                        if r['planner'] == planner and is_solved(r)
-                        and r['peak_memory_mb'] is not None)
-        if not memory:
-            continue
-        drawn = True
-        ax.step(memory, range(1, len(memory) + 1), where='post',
-                color=SERIES[index % len(SERIES)],
-                dashes=SERIES_DASHES[index % len(SERIES_DASHES)],
-                marker=SERIES_MARKERS[index % len(SERIES_MARKERS)],
-                markevery=max(1, len(memory) // 8), markersize=4.5, label=planner)
-    if not drawn:
-        fig.clf()
+    def memory(row):
+        value = row.get('peak_memory_mb')
+        return max(float(value), 1.0) if value is not None else None
+
+    observed = [m for m in (memory(r) for r in rows if is_solved(r)) if m is not None]
+    if not observed:
         return ''
-    ax.set_xscale('log')
-    ax.set_xlabel('peak memory (MB, log scale)')
-    ax.set_ylabel('instances solved')
-    ax.set_title('Memory profile — instances solved within a memory budget')
-    _integer_yaxis(ax)
+    fig, ax = plt.subplots(figsize=(5.2, 3.4))
+    ax.set_ylim(min(observed) * 0.7, max(observed) * 1.6)
+    _draw_cactus(ax, rows, planners, memory, limit=None)
+    ax.set_xlabel('instances solved')
+    ax.set_ylabel('peak memory (MB, log scale)')
+    ax.set_title('Memory profile — memory needed to solve the k cheapest instances')
     ax.legend(loc='upper left')
     fig.tight_layout()
     return _save(fig, plots_dir, 'memory-survival', formats)
 
 
 def _coverage_bars(plt, rows, planners, tracks, plots_dir, formats) -> str:
-    fig, ax = plt.subplots(figsize=(5.4, 3.2))
+    fig, ax = plt.subplots(figsize=(5.8, 3.2))
     width = 0.8 / max(1, len(planners))
+    # Percent labels sit above adjacent bars, so they shrink as the bars do.
+    label_size = 7 if len(planners) <= 3 else 6
     for index, planner in enumerate(planners):
         heights, totals = [], []
         for track in tracks:
@@ -516,18 +556,17 @@ def _coverage_bars(plt, rows, planners, tracks, plots_dir, formats) -> str:
         positions = [i + index * width - 0.4 + width / 2 for i in range(len(tracks))]
         # The instance count behind each bar: without it, 4/4 on a 4-instance
         # track draws exactly as tall as 4/88 on a numeric one.
-        ax.bar(positions, totals, width=width * 0.92, color=GRID, zorder=1,
-               label='instances' if index == 0 else None)
-        # 2px surface gap between adjacent bars.
-        bars = ax.bar(positions, heights, width=width * 0.92, zorder=2,
-                      color=SERIES[index % len(SERIES)], label=planner,
-                      edgecolor=SURFACE, linewidth=1.0)
+        ax.bar(positions, totals, width=width * 0.92, color=INSTANCES_FILL, zorder=1,
+               edgecolor='none', label='instances' if index == 0 else None)
+        bars = ax.bar(positions, heights, width=width * 0.92, zorder=2, label=planner,
+                      color=SURFACE, edgecolor=INK, linewidth=0.8,
+                      hatch=SERIES_HATCHES[index % len(SERIES_HATCHES)])
         for bar, height, total in zip(bars, heights, totals):
             if total:
                 ax.annotate(f'{100.0 * height / total:.0f}%',
                             xy=(bar.get_x() + bar.get_width() / 2, height),
                             xytext=(0, 2), textcoords='offset points',
-                            ha='center', fontsize=7, color=INK_MUTED)
+                            ha='center', fontsize=label_size, color=INK)
     ax.set_xticks(range(len(tracks)))
     # Instance count per track, not row count: planners may cover different tracks.
     per_track = {t: len({r['task_id'] for r in rows if r['track'] == t}) for t in tracks}
@@ -535,8 +574,9 @@ def _coverage_bars(plt, rows, planners, tracks, plots_dir, formats) -> str:
     ax.set_ylabel('instances solved')
     ax.set_title('Coverage per track')
     ax.grid(axis='x', visible=False)
+    ax.set_axisbelow(True)
     _integer_yaxis(ax)
-    ax.legend(loc='upper right')
+    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
     fig.tight_layout()
     return _save(fig, plots_dir, 'coverage-per-track', formats)
 
@@ -547,16 +587,22 @@ def _outcome_bars(plt, rows, planners, plots_dir, formats) -> str:
     left = [0.0] * len(planners)
     positions = list(range(len(planners)))
     for status in statuses:
+        face, hatch = STATUS_STYLE.get(status, ('#ffffff', ''))
         widths = [sum(1 for r in rows if r['planner'] == p and r['status'] == status)
                   for p in planners]
         ax.barh(positions, widths, left=left, height=0.62, label=status.capitalize(),
-                color=STATUS_COLORS.get(status, INK_MUTED),
-                edgecolor=SURFACE, linewidth=1.0)
+                color=face, hatch=hatch, edgecolor=INK, linewidth=0.8)
         for index, width in enumerate(widths):
-            # Selective labels: only segments wide enough to hold one.
-            if width and width / max(1, sum(1 for r in rows if r['planner'] == planners[index])) > 0.06:
+            # Selective labels: only segments wide enough to hold one, in the
+            # ink that contrasts with the segment's fill.
+            attempted = max(1, sum(1 for r in rows if r['planner'] == planners[index]))
+            if width and width / attempted > 0.06:
                 ax.annotate(str(width), xy=(left[index] + width / 2, positions[index]),
-                            ha='center', va='center', fontsize=7, color='#ffffff')
+                            ha='center', va='center', fontsize=7,
+                            color=SURFACE if _is_dark(face) else INK,
+                            bbox=None if not hatch else dict(
+                                boxstyle='square,pad=0.15', facecolor=SURFACE,
+                                edgecolor='none'))
         left = [l + w for l, w in zip(left, widths)]
     ax.set_yticks(positions)
     ax.set_yticklabels(planners)
@@ -564,102 +610,250 @@ def _outcome_bars(plt, rows, planners, plots_dir, formats) -> str:
     ax.set_xlabel('instances')
     ax.set_title('Outcome breakdown')
     ax.grid(axis='y', visible=False)
+    ax.set_axisbelow(True)
     ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.42), ncol=min(5, len(statuses)))
     fig.tight_layout()
     return _save(fig, plots_dir, 'outcomes', formats)
 
 
-def _scatter(plt, rows, left_planner, right_planner, tracks, plots_dir, formats,
-             what: str) -> str:
-    """Instance-by-instance comparison of two planners, log-log.
+def _is_dark(hex_color: str) -> bool:
+    red, green, blue = (int(hex_color[i:i + 2], 16) for i in (1, 3, 5))
+    return 0.299 * red + 0.587 * green + 0.114 * blue < 128
 
-    Unsolved instances are pinned to the cutoff line and drawn hollow, so a
-    point on the border reads as "did not finish" rather than "took exactly the
-    limit" — the convention the planning literature uses.
+
+def _runtime_scatter(plt, rows, left_planner, right_planner, tracks, plots_dir, formats) -> str:
+    """Instance-by-instance runtime comparison of two planners, log-log.
+
+    Faceted per track, one panel each on shared axes, and within a panel every
+    domain has its own marker shape -- the way the planning literature draws
+    it. Unsolved instances are pinned to the cutoff line and drawn hollow, so a
+    point on the border reads as "did not finish" rather than "took exactly
+    the limit".
     """
     by_task = defaultdict(dict)
     for row in rows:
         if row['task_id']:
             by_task[row['task_id']][row['planner']] = row
 
-    value = _runtime if what == 'runtime' else _cost
     limit = _time_limit(rows)
-    fig, ax = plt.subplots(figsize=(3.9, 3.9))
-    # Color by track: at most three, which is the all-pairs-validated cap.
-    palette = {track: SERIES[i % SCATTER_SERIES_CAP] for i, track in enumerate(tracks)}
-    markers = {track: SERIES_MARKERS[i % SCATTER_SERIES_CAP] for i, track in enumerate(tracks)}
-
-    plotted = 0
-    top = MIN_TIME
-    bottom = float('inf')
-    for track in tracks:
-        xs, ys, hollow_x, hollow_y = [], [], [], []
-        for _task, per_planner in by_task.items():
-            left_row, right_row = per_planner.get(left_planner), per_planner.get(right_planner)
-            if not (left_row and right_row) or left_row['track'] != track:
-                continue
-            left_ok, right_ok = is_solved(left_row), is_solved(right_row)
-            if what == 'cost' and not (left_ok and right_ok):
-                continue            # cost is only defined where both found a plan
-            x = value(left_row) if left_ok else None
-            y = value(right_row) if right_ok else None
-            if x is None and y is None:
-                continue
-            if what == 'runtime':
-                target_x, target_y = (x if x is not None else limit), (y if y is not None else limit)
-                (xs if (left_ok and right_ok) else hollow_x).append(target_x)
-                (ys if (left_ok and right_ok) else hollow_y).append(target_y)
-                top = max(top, target_x, target_y)
-                bottom = min(bottom, target_x, target_y)
-            else:
-                xs.append(x)
-                ys.append(y)
-                top = max(top, x, y)
-                bottom = min(bottom, x, y)
-        if xs:
-            ax.scatter(xs, ys, s=26, color=palette[track], marker=markers[track],
-                       edgecolor=SURFACE, linewidth=0.6, label=track, zorder=3)
-            plotted += len(xs)
-        if hollow_x:
-            ax.scatter(hollow_x, hollow_y, s=26, facecolor='none', edgecolor=palette[track],
-                       marker=markers[track], linewidth=1.2, zorder=3,
-                       label=f'{track} (unsolved)')
-            plotted += len(hollow_x)
-
-    if not plotted:
-        fig.clf()
+    by_domain = _scatter_points(by_task, left_planner, right_planner, limit)
+    if not by_domain:
         return ''
 
     # Anchor the range on the data rather than on the measurement floor: a decade
-    # of empty axes below the fastest point wastes most of the plot.
-    low = max(MIN_TIME, bottom * 0.6) if what == 'runtime' else max(0.5, bottom * 0.6)
-    high = (limit * 1.6) if what == 'runtime' else top * 1.4
-    ax.plot([low, high], [low, high], color=AXIS, linewidth=1.0, zorder=1)
-    if what == 'runtime':
+    # of empty axes below the fastest point wastes most of the plot. One range
+    # for every panel, so the panels compare directly. Runs clamped to MIN_TIME
+    # must still stand off the spine, hence the 0.6.
+    everything = [v for p in by_domain.values()
+                  for v in p['xs'] + p['ys'] + p['hollow_x'] + p['hollow_y']]
+    low = max(MIN_TIME * 0.6, min(everything) * 0.6)
+    high = limit * 1.6
+
+    # A panel is (track, [(domain, marker, fill, points), ...]).
+    panels = []
+    for track in tracks:
+        domains = sorted(d for t, d in by_domain if t == track)
+        if domains:
+            panels.append((track, [
+                (domain, DOMAIN_MARKERS[i % len(DOMAIN_MARKERS)],
+                 DOMAIN_FILLS[(i // len(DOMAIN_MARKERS)) % len(DOMAIN_FILLS)],
+                 by_domain[(track, domain)]) for i, domain in enumerate(domains)]))
+
+    # The legend goes under each panel, and tight_layout would otherwise shrink
+    # the axes to fit it: give the figure the legend's height up front.
+    def _legend_columns(count: int) -> int:
+        return 3 if count > 4 else min(3, max(1, count))
+
+    legend_rows = 0
+    for _track, groups in panels:
+        count = len(groups) + (1 if any(g[3]['hollow_x'] for g in groups) else 0)
+        legend_rows = max(legend_rows, -(-count // _legend_columns(count)))
+    fig, axes = plt.subplots(1, len(panels),
+                             figsize=(3.6 * len(panels), 3.9 + 0.17 * legend_rows),
+                             sharex=True, sharey=True, squeeze=False)
+    axes = list(axes[0])
+    for ax, (track, groups) in zip(axes, panels):
+        hollow_seen = False
+        for domain, marker, fill, points in groups:
+            if points['xs']:
+                # A thin white rim separates overlapping filled markers.
+                ax.scatter(points['xs'], points['ys'], s=26, color=fill, marker=marker,
+                           edgecolor=SURFACE, linewidth=0.6, zorder=3, label=domain)
+            if points['hollow_x']:
+                hollow_seen = True
+                ax.scatter(points['hollow_x'], points['hollow_y'], s=26, facecolor=SURFACE,
+                           edgecolor=fill, marker=marker, linewidth=1.0, zorder=3)
+                if not points['xs']:
+                    # Keep the domain in the legend even if nothing was solved.
+                    ax.scatter([], [], s=26, color=fill, marker=marker, label=domain)
+        ax.plot([low, high], [low, high], color=AXIS, linewidth=0.8, zorder=1)
         ax.axvline(limit, color=AXIS, linewidth=0.8, dashes=(2, 2), zorder=0)
         ax.axhline(limit, color=AXIS, linewidth=0.8, dashes=(2, 2), zorder=0)
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_xlim(low, high)
-    ax.set_ylim(low, high)
-    unit = 'runtime (s)' if what == 'runtime' else 'plan cost (length / makespan)'
-    ax.set_xlabel(f'{left_planner} — {unit}')
-    ax.set_ylabel(f'{right_planner} — {unit}')
-    ax.set_title('Runtime' if what == 'runtime' else 'Plan quality', loc='left')
-    # Which side of the diagonal means what, stated rather than left to the reader.
-    ax.annotate(f'{right_planner} slower' if what == 'runtime' else f'{right_planner} worse',
-                xy=(0.04, 0.94), xycoords='axes fraction', fontsize=7, color=INK_MUTED)
-    ax.annotate(f'{left_planner} slower' if what == 'runtime' else f'{left_planner} worse',
-                xy=(0.96, 0.06), xycoords='axes fraction', fontsize=7, color=INK_MUTED,
-                ha='right')
-    # Legend below the axes: both triangles carry a "which side means what" note,
-    # and a corner legend would sit on top of one of them.
-    handles = ax.get_legend_handles_labels()[0]
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.17), fontsize=7,
-              ncol=min(3, max(1, len(handles))))
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.set_xlim(low, high)
+        ax.set_ylim(low, high)
+        ax.set_aspect('equal')
+        ax.set_xlabel(f'{left_planner} — runtime (s)')
+        ax.set_title(track, fontsize=9)
+        # Legend below the panel: both triangles carry a "which side means what"
+        # note, and a corner legend would sit on top of one. Domains differ per
+        # track, so every panel carries its own.
+        handles, labels = ax.get_legend_handles_labels()
+        if hollow_seen:
+            from matplotlib.lines import Line2D
+            handles.append(Line2D([], [], linestyle='none', marker='o', markersize=5,
+                                  markerfacecolor=SURFACE, markeredgecolor=INK))
+            labels.append('hollow: one unsolved (at the limit)')
+        ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.17),
+                  fontsize=6.5, ncol=_legend_columns(len(labels)),
+                  handletextpad=0.3, columnspacing=1.0)
+    axes[0].set_ylabel(f'{right_planner} — runtime (s)')
+    # Which side of the diagonal means what, stated rather than left to the
+    # reader -- once, in the first panel, and clear of the cutoff lines where
+    # the hollow markers sit.
+    axes[0].annotate(f'{right_planner} slower', xy=(0.04, 0.86), xycoords='axes fraction',
+                     fontsize=7, color=INK_MUTED)
+    axes[0].annotate(f'{left_planner} slower', xy=(0.88, 0.05), xycoords='axes fraction',
+                     fontsize=7, color=INK_MUTED, ha='right')
     fig.tight_layout()
-    name = f'{what}-{_slug(left_planner)}-vs-{_slug(right_planner)}'
+    # Title just above the panels, wherever tight_layout put them: a square
+    # panel in a tall figure leaves slack above it, and the title would float.
+    panel_top = max(ax.get_position().y1 for ax in axes)
+    fig.suptitle('Runtime per track', x=0.01, y=min(0.995, panel_top + 0.26 / fig.get_figheight()),
+                 ha='left', va='bottom', fontsize=10)
+    name = f'runtime-{_slug(left_planner)}-vs-{_slug(right_planner)}'
     return _save(fig, plots_dir, name, formats)
+
+
+def _scatter_points(by_task, left_planner, right_planner,
+                    limit: float) -> Dict[Tuple[str, str], Dict[str, List[float]]]:
+    """``(track, domain) -> points`` for a runtime scatter: ``xs``/``ys`` where
+    both planners solved the instance, ``hollow_x``/``hollow_y`` where one did
+    not (pinned to the limit). Only groups with at least one point are returned."""
+    groups: Dict[Tuple[str, str], Dict[str, List[float]]] = defaultdict(
+        lambda: {'xs': [], 'ys': [], 'hollow_x': [], 'hollow_y': []})
+    for per_planner in by_task.values():
+        left_row, right_row = per_planner.get(left_planner), per_planner.get(right_planner)
+        if not (left_row and right_row):
+            continue
+        left_ok, right_ok = is_solved(left_row), is_solved(right_row)
+        x = _runtime(left_row) if left_ok else None
+        y = _runtime(right_row) if right_ok else None
+        if x is None and y is None:
+            continue
+        key = (left_row['track'] or '', left_row['domain'] or '')
+        if left_ok and right_ok:
+            groups[key]['xs'].append(x)
+            groups[key]['ys'].append(y)
+        else:
+            groups[key]['hollow_x'].append(x if x is not None else limit)
+            groups[key]['hollow_y'].append(y if y is not None else limit)
+    return dict(groups)
+
+
+def _common_quality(rows, planners, track: str) -> Tuple[Dict[str, List[float]], int]:
+    """Per planner, the plan cost relative to the best cost on that instance,
+    over the instances of ``track`` that *every* planner that ran the track
+    solved. Restricting to the common set is what makes the distributions
+    comparable: a planner that only solves the easy half would otherwise look
+    better on raw cost. Returns the ratios and the common instance count."""
+    ran = [p for p in planners if any(r['planner'] == p and r['track'] == track for r in rows)]
+    index = _solved_index([r for r in rows if r['track'] == track])
+    ratios: Dict[str, List[float]] = {p: [] for p in ran}
+    common = 0
+    for by_planner in index.values():
+        costs = {p: _cost(by_planner[p]) for p in ran if p in by_planner}
+        if len(costs) < len(ran) or any(c in (None, 0) for c in costs.values()):
+            continue
+        common += 1
+        best = min(costs.values())
+        for planner, cost in costs.items():
+            ratios[planner].append(cost / best)
+    return ratios, common
+
+
+def _quality_violins(plt, rows, planners, tracks, plots_dir, formats) -> str:
+    """Plan quality as one violin per planner, per track, over the instances
+    every planner solved. Cost is the plan length, or the makespan for a
+    schedule, divided by the best cost found for that instance -- so 1 is
+    "as good as the best planner", 1.5 is "half again as long", and domains
+    with different cost scales can share one axis.
+    """
+    per_track = {t: _common_quality(rows, planners, t) for t in tracks}
+    # A violin needs a few instances to say anything; a track with fewer is
+    # reported, not drawn.
+    drawn = [t for t, (ratios, common) in per_track.items()
+             if common >= 3 and len(ratios) >= 2]
+    for track, (ratios, common) in per_track.items():
+        if track not in drawn:
+            print(f'note: plan-quality violins skipped for {track} ({len(ratios)} planner(s), '
+                  f'{common} instance(s) solved by every planner)')
+    if not drawn:
+        return ''
+
+    # Width follows the number of violins, and each panel gets its share, so a
+    # track that only two planners ran is not stretched to match the others.
+    counts = [len(per_track[t][0]) for t in drawn]
+    fig, axes = plt.subplots(1, len(drawn), figsize=(0.8 + 0.8 * sum(counts), 3.4),
+                             sharey=True, squeeze=False,
+                             gridspec_kw={'width_ratios': counts})
+    axes = list(axes[0])
+    top = 1.0
+    for ax, track in zip(axes, drawn):
+        ratios, common = per_track[track]
+        names = list(ratios)
+        positions = list(range(1, len(names) + 1))
+        for position, name in zip(positions, names):
+            values = ratios[name]
+            top = max(top, max(values))
+            if len(set(values)) < 2:
+                # A degenerate distribution (every instance at the best cost,
+                # typically) has no density to draw: show it as its one value.
+                ax.plot([position - 0.3, position + 0.3], [values[0]] * 2, color=INK,
+                        linewidth=1.5, solid_capstyle='butt', zorder=3)
+                continue
+            parts = ax.violinplot([values], positions=[position], widths=0.75,
+                                  showmeans=False, showmedians=False, showextrema=False)
+            for body in parts['bodies']:
+                body.set_facecolor(INSTANCES_FILL)
+                body.set_edgecolor(INK)
+                body.set_linewidth(0.8)
+                body.set_alpha(1.0)
+            # Inner box: interquartile bar, median as a white dot, whiskers to
+            # the extremes as a thin line -- the reading a reviewer expects.
+            q1, median, q3 = _quantiles(values)
+            ax.plot([position, position], [min(values), max(values)], color=INK,
+                    linewidth=0.8, zorder=3)
+            ax.plot([position, position], [q1, q3], color=INK, linewidth=4.0,
+                    solid_capstyle='butt', zorder=4)
+            ax.plot([position], [median], marker='o', markersize=3.5, color=SURFACE,
+                    markeredgecolor=INK, markeredgewidth=0.8, linestyle='none', zorder=5)
+        ax.axhline(1.0, color=AXIS, linewidth=0.8, dashes=(2, 2), zorder=0)
+        ax.set_xticks(positions)
+        ax.set_xticklabels(names, rotation=20, ha='right')
+        ax.set_xlim(0.4, len(names) + 0.6)
+        ax.set_title(f'{track} ({common} instances solved by all)', fontsize=9)
+        ax.grid(axis='x', visible=False)
+    axes[0].set_ylabel('plan cost / best cost (1 = best)')
+    axes[0].set_ylim(0.97, top * 1.06)
+    fig.suptitle('Plan quality on the commonly solved instances', x=0.01, ha='left',
+                 fontsize=10, y=1.0)
+    fig.tight_layout()
+    return _save(fig, plots_dir, 'plan-quality', formats)
+
+
+def _quantiles(values: Sequence[float]) -> Tuple[float, float, float]:
+    """First quartile, median, third quartile by linear interpolation."""
+    ordered = sorted(values)
+
+    def at(fraction: float) -> float:
+        position = fraction * (len(ordered) - 1)
+        lower = int(position)
+        upper = min(lower + 1, len(ordered) - 1)
+        return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+
+    return at(0.25), at(0.5), at(0.75)
 
 
 # ----------------------------------------------------------------------

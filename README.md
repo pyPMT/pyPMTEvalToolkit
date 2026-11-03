@@ -326,13 +326,13 @@ Writes to `sandbox/report/`:
 | `results.txt` | coverage, outcomes, IPC scores and per-domain coverage as text |
 | `coverage.tex`, `per-domain-coverage.tex`, `outcomes.tex` | the same tables as booktabs LaTeX, ready to `\input` |
 | `report.json` | every number above, for scripting |
-| `plots/survival.*` | **survival (cactus) plot** — instances solved within a time budget, log x |
+| `plots/survival.*` | **survival (cactus) plot** — instances solved on x, time needed on a log y |
 | `plots/survival-per-track.*` | the same, faceted by track |
-| `plots/memory-survival.*` | instances solved within a memory budget |
-| `plots/coverage-per-track.*` | grouped coverage bars, labelled with percentages |
+| `plots/memory-survival.*` | the same with peak memory on y |
+| `plots/coverage-per-track.*` | grouped coverage bars, one hatch per planner, labelled with percentages |
 | `plots/outcomes.*` | stacked outcome bars (solved / timeout / memout / error / …) |
-| `plots/runtime-A-vs-B.*` | log-log runtime scatter per planner pair, colored by track |
-| `plots/cost-A-vs-B.*` | the same for plan cost (length, or makespan for schedules) |
+| `plots/plan-quality.*` | **plan-quality violins** — per track, one violin per planner of *cost / best cost* over the instances every planner solved |
+| `plots/runtime-A-vs-B.*` | log-log runtime scatter per planner pair, one panel per track on shared axes, one marker shape per domain |
 
 Both PDF (vector, `pdf.fonttype 42` so venues can edit the text) and PNG, via
 `--formats`. `--no-plots` produces the tables alone, with no matplotlib needed.
@@ -343,13 +343,20 @@ rule `best_cost / cost` (0 when unsolved), *time* is the agile rule
 `1 / (1 + log10(t / t_best))`. Cost is the plan length, or the makespan for a
 temporal plan.
 
-**About the figures.** Colors come from a colorblind-validated categorical set,
-every series also carries its own marker and dash pattern so nothing depends on
-color alone (greyscale printing survives), outcome colors are reserved for
-outcomes and never reused as a series color, and there are no dual axes. In the
-runtime scatters, an instance one planner failed is pinned to the cutoff line
-and drawn **hollow**, so a point on the border reads as "did not finish" rather
-than "took exactly the limit".
+**About the figures.** They are black and white throughout: a planner is told
+apart by its marker shape (filled or hollow) and its line style, bars by hatch
+pattern, so the figures print and photocopy exactly as they appear on screen
+and the outcome scheme (solved dark, each failure mode its own hatch) is never
+reused for a planner. The cactus plots follow the planning-literature
+convention — *instances solved* on the x axis, the *time (or memory) needed
+to solve that many* on a log y axis — so a curve that stays low and reaches far
+to the right is a good planner. There are no dual axes. In the runtime
+scatters, an instance one planner failed is pinned to the cutoff line and drawn
+**hollow**, so a point on the border reads as "did not finish" rather than
+"took exactly the limit". Plan quality is compared only on the instances
+*every* planner solved, as a ratio to the best cost found for the instance, so
+a planner that solves only the easy half of a track cannot look better on raw
+cost; each violin carries its interquartile bar and median.
 
 ## Resuming and iterating
 
